@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="小6クイズ">
+<meta name="theme-color" content="#38a169">
+<title>小学6年生クイズアプリ</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #38a169;
+    --green-dark: #276749;
+    --green-light: #68d391;
+    --bg: #f0fff4;
+    --card-radius: 16px;
+  }
+  body {
+    font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'ヒラギノ角ゴ ProN W3', Meiryo, sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    color: #1a202c;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #app { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+
+  /* ---- SCREENS ---- */
+  .screen { display: none; padding: 16px; min-height: 100vh; }
+  .screen.active { display: block; }
+
+  /* ---- HOME SCREEN ---- */
+  #home-screen {
+    background: linear-gradient(160deg, #e6fffa 0%, #c6f6d5 50%, #9ae6b4 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+  #home-screen.active { display: flex; }
+  .home-logo {
+    width: 150px; height: 150px;
+    object-fit: cover;
+    object-position: 45% 60%;
+    border-radius: 50%;
+    border: 5px solid var(--green);
+    box-shadow: 0 8px 32px rgba(56,161,105,0.35);
+    margin-bottom: 18px;
+  }
+  .home-title {
+    font-size: 1.7rem;
+    font-weight: bold;
+    color: var(--green-dark);
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .home-subtitle {
+    font-size: 0.95rem;
+    color: #2f855a;
+    margin-bottom: 36px;
+    text-align: center;
+  }
+  .subject-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    width: 100%;
+    max-width: 380px;
+  }
+  .subject-btn {
+    background: white;
+    border: 2.5px solid var(--green);
+    border-radius: 14px;
+    padding: 22px 10px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--green-dark);
+    cursor: pointer;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(56,161,105,0.15);
+    transition: transform 0.13s, box-shadow 0.13s, background 0.13s;
+    -webkit-user-select: none; user-select: none;
+  }
+  .subject-btn:active {
+    transform: scale(0.96);
+    background: #c6f6d5;
+    box-shadow: 0 2px 6px rgba(56,161,105,0.2);
+  }
+  .subject-btn .subj-icon { font-size: 1.6rem; display: block; margin-bottom: 4px; }
+
+  /* ---- QUIZ SCREEN ---- */
+  #quiz-screen { padding: 0; }
+  .quiz-header {
+    background: var(--green);
+    color: white;
+    padding: 14px 16px 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .back-btn {
+    background: rgba(255,255,255,0.25);
+    border: none;
+    color: white;
+    font-size: 1.1rem;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .quiz-subject-name { font-size: 1.1rem; font-weight: bold; flex: 1; }
+  .quiz-progress-text { font-size: 0.85rem; opacity: 0.9; }
+  .progress-bar-wrap { height: 5px; background: #c6f6d5; }
+  .progress-bar { height: 100%; background: var(--green-dark); transition: width 0.3s; }
+
+  .quiz-body { padding: 16px; }
+
+  /* ---- QUESTION CARD ---- */
+  .q-card { position:relative; border-radius:16px; overflow:hidden; margin-bottom:18px; min-height:200px; }
+  .q-card-bg { position:absolute; inset:0; background-size:contain; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a; filter:brightness(0.55); z-index:0; }
+  .q-card-content { position:relative; z-index:1; padding:16px; }
+  .q-text-card { background:rgba(0,0,0,0.35); border-radius:10px; padding:10px 12px; }
+  .q-num { color: #9ae6b4; font-size: 0.8rem; font-weight: bold; margin-bottom: 8px; }
+  .q-text { color: white; font-size: 1.05rem; font-weight: bold; line-height: 1.5; }
+
+  /* ---- CHOICES ---- */
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choice-btn {
+    background: white;
+    border: 2px solid #b2dfdb;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: #1a202c;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s, border-color 0.12s, transform 0.1s;
+    -webkit-user-select: none; user-select: none;
+  }
+  .choice-btn:active:not(:disabled) { transform: scale(0.98); }
+  .choice-btn.correct { background: #c6f6d5; border-color: var(--green); color: var(--green-dark); }
+  .choice-btn.wrong { background: #fed7d7; border-color: #fc8181; color: #c53030; }
+  .choice-btn:disabled { cursor: default; }
+  .choice-btn .choice-icon { margin-right: 6px; }
+
+  /* ---- NEXT BTN ---- */
+  .next-btn {
+    display: none;
+    width: 100%;
+    margin-top: 14px;
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 1.05rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(56,161,105,0.3);
+    transition: background 0.13s;
+  }
+  .next-btn:active { background: var(--green-dark); }
+
+  /* ---- RESULT SCREEN ---- */
+  #result-screen {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start; padding-top: 40px; padding-bottom: 40px;
+    background: linear-gradient(160deg, #e6fffa 0%, #c6f6d5 60%, #9ae6b4 100%);
+    min-height: 100vh;
+  }
+  #result-screen.active { display: flex; }
+  .result-animal {
+    width: 120px; height: 120px;
+    object-fit: cover; border-radius: 50%;
+    border: 4px solid var(--green);
+    box-shadow: 0 6px 24px rgba(56,161,105,0.3);
+    margin-bottom: 18px;
+  }
+  .result-title { font-size: 1.5rem; font-weight: bold; color: var(--green-dark); margin-bottom: 8px; }
+  .result-score {
+    font-size: 3rem; font-weight: bold; color: var(--green);
+    margin-bottom: 4px; line-height: 1;
+  }
+  .result-score-label { font-size: 0.9rem; color: #2f855a; margin-bottom: 24px; }
+  .result-message { font-size: 1.1rem; color: #276749; margin-bottom: 28px; font-weight: bold; text-align: center; }
+  .result-detail { width: 100%; max-width: 380px; margin-bottom: 28px; }
+  .result-item {
+    background: white;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.88rem;
+    border-left: 4px solid #b2dfdb;
+  }
+  .result-item.r-correct { border-left-color: var(--green); }
+  .result-item.r-wrong { border-left-color: #fc8181; }
+  .result-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+  .result-q { flex: 1; }
+  .result-q-text { font-weight: bold; color: #1a202c; margin-bottom: 2px; }
+  .result-q-ans { color: #2f855a; font-size: 0.82rem; }
+  .result-q-wrong-ans { color: #c53030; font-size: 0.82rem; }
+  .result-btns { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; }
+  .retry-btn, .home-btn-r {
+    padding: 15px; border-radius: 12px; font-size: 1rem; font-weight: bold;
+    cursor: pointer; border: none; transition: background 0.13s;
+  }
+  .retry-btn { background: var(--green); color: white; box-shadow: 0 4px 14px rgba(56,161,105,0.3); }
+  .retry-btn:active { background: var(--green-dark); }
+  .home-btn-r { background: white; color: var(--green-dark); border: 2px solid var(--green); }
+  .home-btn-r:active { background: #c6f6d5; }
+
+  /* answer feedback */
+  .answer-feedback {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.93rem;
+    font-weight: bold;
+    display: none;
+  }
+  .answer-feedback.correct { background: #c6f6d5; color: var(--green-dark); }
+  .answer-feedback.wrong { background: #fed7d7; color: #c53030; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- HOME -->
+  <div id="home-screen" class="screen active">
+    <img class="home-logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Astrochelys_radiata_-Plzen_zoo-8.jpg/320px-Astrochelys_radiata_-Plzen_zoo-8.jpg" alt="カメ" onerror="this.style.display='none'">
+    <div class="home-title">小6クイズ</div>
+    <div class="home-subtitle">小学6年生の5教科クイズ！<br>1回10問 — 全力チャレンジ！</div>
+    <div class="subject-grid">
+      <button class="subject-btn" onclick="startSubject('国語')">
+        <span class="subj-icon">📖</span>国語
+      </button>
+      <button class="subject-btn" onclick="startSubject('算数')">
+        <span class="subj-icon">🔢</span>算数
+      </button>
+      <button class="subject-btn" onclick="startSubject('理科')">
+        <span class="subj-icon">🔬</span>理科
+      </button>
+      <button class="subject-btn" onclick="startSubject('社会')">
+        <span class="subj-icon">🌏</span>社会
+      </button>
+      <button class="subject-btn" style="grid-column: span 2;" onclick="startSubject('英語')">
+        <span class="subj-icon">🔤</span>英語
+      </button>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz-screen" class="screen">
+    <div class="quiz-header">
+      <button class="back-btn" onclick="goHome()">← ホーム</button>
+      <span class="quiz-subject-name" id="quiz-subject-label"></span>
+      <span class="quiz-progress-text" id="quiz-progress-label"></span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+    </div>
+    <div class="quiz-body">
+      <div class="q-card" id="q-card">
+        <div class="q-card-bg" id="q-card-bg"></div>
+        <div class="q-card-content">
+          <div class="q-text-card">
+            <div class="q-num" id="q-num"></div>
+            <div class="q-text" id="q-text"></div>
+          </div>
+        </div>
+      </div>
+      <div class="choices" id="choices"></div>
+      <div class="answer-feedback" id="answer-feedback"></div>
+      <button class="next-btn" id="next-btn" onclick="nextQuestion()">次の問題へ →</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result-screen" class="screen">
+    <img class="result-animal" id="result-animal" src="" alt="アニマル" onerror="this.style.display='none'">
+    <div class="result-title" id="result-subject-name"></div>
+    <div class="result-score" id="result-score"></div>
+    <div class="result-score-label">/ 10問</div>
+    <div class="result-message" id="result-message"></div>
+    <div class="result-detail" id="result-detail"></div>
+    <div class="result-btns">
+      <button class="retry-btn" onclick="retrySubject()">もう一度チャレンジ！</button>
+      <button class="home-btn-r" onclick="goHome()">教科えらびに戻る</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==============================
+// IMAGE POOL
+// ==============================
+const IMAGES = [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Astrochelys_radiata_-Plzen_zoo-8.jpg/320px-Astrochelys_radiata_-Plzen_zoo-8.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Aldabra_giant_tortoise_%28Aldabrachelys_gigantea%29.jpg/320px-Aldabra_giant_tortoise_%28Aldabrachelys_gigantea%29.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Chelonoidis_niger.jpg/320px-Chelonoidis_niger.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Hermann%27s_tortoise_closeup.jpg/320px-Hermann%27s_tortoise_closeup.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Iguana_iguana_in_Mannheim.jpg/320px-Iguana_iguana_in_Mannheim.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Blue-tailed_skink_%28Cryptoblepharus_egeriae%29.jpg/320px-Blue-tailed_skink_%28Cryptoblepharus_egeriae%29.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Chameleon_Furcifer_lateralis.jpg/320px-Chameleon_Furcifer_lateralis.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Komodo_dragon_%28Varanus_komodoensis%29_2.jpg/320px-Komodo_dragon_%28Varanus_komodoensis%29_2.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Geko_Closeup.jpg/320px-Geko_Closeup.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Anolis_carolinensis.jpg/320px-Anolis_carolinensis.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Graptemys_pseudogeographica.jpg/320px-Graptemys_pseudogeographica.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Rotating_earth_%28large%29.gif/200px-Rotating_earth_%28large%29.gif",
+  // Additional tortoise/lizard images
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Russian_Tortoise_%28Testudo_horsfieldii%29.jpg/320px-Russian_Tortoise_%28Testudo_horsfieldii%29.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Madagascar_day_gecko.jpg/320px-Madagascar_day_gecko.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Green_iguana_in_Amazonia.jpg/320px-Green_iguana_in_Amazonia.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Varanus_salvator_in_Kuala_Lumpur.jpg/320px-Varanus_salvator_in_Kuala_Lumpur.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Leiolepis_ocellata.jpg/320px-Leiolepis_ocellata.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Thamnophis_sirtalis_sirtalis_New_Hampshire.jpg/320px-Thamnophis_sirtalis_sirtalis_New_Hampshire.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Galapagos_tortoise_Santa_Cruz_cropped.jpg/320px-Galapagos_tortoise_Santa_Cruz_cropped.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Orange-striped_ribbon_snake.jpg/320px-Orange-striped_ribbon_snake.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Crotalus_horridus_CDC.png/320px-Crotalus_horridus_CDC.png",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Western_fence_lizard_Sceloporus_occidentalis.jpg/320px-Western_fence_lizard_Sceloporus_occidentalis.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Furcifer_pardalis_-_Chamaeleo_pardalis_edit.jpg/320px-Furcifer_pardalis_-_Chamaeleo_pardalis_edit.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Testudo_graeca_2.jpg/320px-Testudo_graeca_2.jpg"
+];
+
+// ==============================
+// QUESTION DATA
+// ==============================
+const QUESTIONS = {
+  '国語': [
+    { q: '「拡大」の読み方は？', choices: ['かくだい','かくたい','ひろだい','こうだい'], ans: 0 },
+    { q: '「縮小」の読み方は？', choices: ['しゅくしょう','ちぢしょう','しゅくこ','ちぢこ'], ans: 0 },
+    { q: '「存在」の読み方は？', choices: ['そんざい','そんたい','ざいそん','ぞんざい'], ans: 0 },
+    { q: '「危険」の対義語は？', choices: ['安全','危ない','安心','注意'], ans: 0 },
+    { q: '「頭が痛い」の意味に近い慣用句は？', choices: ['頭を抱える','頭を使う','頭が切れる','頭が上がらない'], ans: 0 },
+    { q: '「彼は医者だ」の「だ」の品詞は？', choices: ['助動詞','助詞','形容詞','動詞'], ans: 0 },
+    { q: '「走る」の活用形で連用形は？', choices: ['走り','走れ','走ろ','走る'], ans: 0 },
+    { q: '「春はあけぼの」は誰の作品？', choices: ['清少納言','紫式部','松尾芭蕉','小林一茶'], ans: 0 },
+    { q: '「いとをかし」の意味は？', choices: ['たいそう趣がある','とても悲しい','大変つらい','たいへん恐ろしい'], ans: 0 },
+    { q: '「枕草子」のジャンルは？', choices: ['随筆','物語','日記','歌集'], ans: 0 },
+    { q: '「推薦」の読み方は？', choices: ['すいせん','すいしょう','おしはかる','すすめ'], ans: 0 },
+    { q: '「彼女は歌が上手い」の主語は？', choices: ['彼女','歌','上手い','は'], ans: 0 },
+    { q: '「七転八起」の意味は？', choices: ['何度失敗してもあきらめない','7回転んで8回起きる','運動が得意','いつも元気'], ans: 0 },
+    { q: '「以心伝心」の意味は？', choices: ['言わなくても気持ちが通じる','手紙で伝える','心が弱い','遠くに伝わる'], ans: 0 },
+    { q: '「貢献」の読み方は？', choices: ['こうけん','こうかん','たづさわる','つくす'], ans: 0 },
+    { q: '「竹取物語」の主人公は？', choices: ['かぐや姫','光源氏','桃太郎','浦島太郎'], ans: 0 },
+    { q: '「私は彼に本を贈った」の「に」は何を表す？', choices: ['相手','場所','時間','手段'], ans: 0 },
+    { q: '「筆舌に尽くしがたい」の意味は？', choices: ['言葉で表せないほどだ','とても書きやすい','筆がいらない','言葉が多い'], ans: 0 },
+    { q: '「起承転結」で「転」は何番目？', choices: ['3番目','1番目','2番目','4番目'], ans: 0 },
+    { q: '「古池や蛙飛びこむ水の音」を詠んだのは？', choices: ['松尾芭蕉','小林一茶','与謝蕪村','西行'], ans: 0 }
+  ],
+  '算数': [
+    { q: '6:4を最も簡単な比にすると？', choices: ['3:2','6:4','2:3','1:2'], ans: 0 },
+    { q: '円の面積の公式は？', choices: ['半径×半径×3.14','直径×3.14','半径×2×3.14','直径×直径×3.14'], ans: 0 },
+    { q: '1/2÷1/3の答えは？', choices: ['3/2','1/6','2/3','1/3'], ans: 0 },
+    { q: '時速60kmで2.5時間走ると何km？', choices: ['150km','120km','125km','140km'], ans: 0 },
+    { q: '定価1000円の20%引きは何円？', choices: ['800円','900円','750円','850円'], ans: 0 },
+    { q: '円柱の体積（半径3cm高さ10cm）は？', choices: ['282.6cm³','188.4cm³','94.2cm³','565.2cm³'], ans: 0 },
+    { q: '3/4+1/6の答えは？', choices: ['11/12','4/10','1/2','5/6'], ans: 0 },
+    { q: '比例式 3:5=x:20 のxは？', choices: ['12','8','15','10'], ans: 0 },
+    { q: '5%食塩水200gの食塩は何g？', choices: ['10g','5g','20g','15g'], ans: 0 },
+    { q: '分速80mは時速何km？', choices: ['4.8km','8km','4km','48km'], ans: 0 },
+    { q: '1辺8cmの正方形の面積は？', choices: ['64cm²','32cm²','16cm²','48cm²'], ans: 0 },
+    { q: '0.3×0.6の答えは？', choices: ['0.18','0.9','1.8','0.018'], ans: 0 },
+    { q: '三角形の面積（底辺12cm高さ8cm）は？', choices: ['48cm²','96cm²','24cm²','36cm²'], ans: 0 },
+    { q: '割合：45は90の何%？', choices: ['50%','45%','55%','40%'], ans: 0 },
+    { q: '2/3×3/4の答えは？', choices: ['1/2','6/12','2/4','5/7'], ans: 0 },
+    { q: '平均：5,7,9,3,6の平均は？', choices: ['6','5','7','8'], ans: 0 },
+    { q: '1辺6cmの立方体の体積は？', choices: ['216cm³','36cm³','108cm³','72cm³'], ans: 0 },
+    { q: '180kmを3時間で走ると時速何km？', choices: ['60km','54km','90km','45km'], ans: 0 },
+    { q: '最大公約数：12と18の最大公約数は？', choices: ['6','3','12','9'], ans: 0 },
+    { q: '最小公倍数：4と6の最小公倍数は？', choices: ['12','24','6','8'], ans: 0 }
+  ],
+  '理科': [
+    { q: '光合成に必要なものは？', choices: ['水・二酸化炭素・光','水・酸素・光','水・窒素・光','二酸化炭素・酸素・光'], ans: 0 },
+    { q: '人の血液を全身に送る臓器は？', choices: ['心臓','肺','肝臓','胃'], ans: 0 },
+    { q: '植物が酸素を出すはたらきは？', choices: ['光合成','呼吸','蒸散','吸収'], ans: 0 },
+    { q: '月が地球の周りを1周する時間は？', choices: ['約1か月','約1年','約1週間','約1日'], ans: 0 },
+    { q: '食物連鎖で植物は何？', choices: ['生産者','消費者','分解者','捕食者'], ans: 0 },
+    { q: '電流の単位は？', choices: ['アンペア(A)','ボルト(V)','ワット(W)','オーム(Ω)'], ans: 0 },
+    { q: '天気で「積乱雲」が出るとどうなる？', choices: ['雷雨になりやすい','晴れが続く','霧が出る','雪になる'], ans: 0 },
+    { q: '人の体で消化を行う最初の臓器は？', choices: ['口(だ液)','胃','十二指腸','食道'], ans: 0 },
+    { q: '地球から最も近い恒星は？', choices: ['太陽','月','火星','金星'], ans: 0 },
+    { q: '磁石のN極とS極は？', choices: ['引き合う','反発する','どちらでもない','くっつかない'], ans: 0 },
+    { q: '植物の蒸散は主にどこで行われる？', choices: ['葉の気孔','茎','根','花'], ans: 0 },
+    { q: '地震の揺れを伝える波のうち先に来るのは？', choices: ['P波','S波','表面波','縦波'], ans: 0 },
+    { q: '人の肺の役割は？', choices: ['酸素と二酸化炭素の交換','血液を作る','食べ物を消化する','不要物をこす'], ans: 0 },
+    { q: 'てこで支点から遠い方に力を加えると？', choices: ['小さい力で持ち上げられる','大きい力が必要','変わらない','動かない'], ans: 0 },
+    { q: '花粉を運ぶ虫媒花でない植物は？', choices: ['イネ','桜','アサガオ','タンポポ'], ans: 0 },
+    { q: '太陽系で最も大きな惑星は？', choices: ['木星','土星','天王星','海王星'], ans: 0 },
+    { q: '電気抵抗の単位は？', choices: ['オーム(Ω)','アンペア(A)','ボルト(V)','ワット(W)'], ans: 0 },
+    { q: '水が0℃以下になると？', choices: ['氷になる','蒸発する','なくなる','熱くなる'], ans: 0 },
+    { q: 'ヒトの染色体の数は？', choices: ['46本','23本','48本','92本'], ans: 0 },
+    { q: '化石燃料でないものは？', choices: ['太陽光','石炭','石油','天然ガス'], ans: 0 }
+  ],
+  '社会': [
+    { q: '日本最初の元号は？', choices: ['大化','昭和','明治','江戸'], ans: 0 },
+    { q: '聖徳太子が定めた十七条憲法は何時代？', choices: ['飛鳥時代','奈良時代','平安時代','鎌倉時代'], ans: 0 },
+    { q: '織田信長が天下統一を目指した時代は？', choices: ['戦国時代','江戸時代','室町時代','安土桃山時代'], ans: 0 },
+    { q: '鎌倉幕府を開いたのは誰？', choices: ['源頼朝','徳川家康','平清盛','足利尊氏'], ans: 0 },
+    { q: '日本国憲法が公布された年は？', choices: ['1946年','1945年','1947年','1948年'], ans: 0 },
+    { q: '日本の国会は何院制？', choices: ['二院制（衆議院・参議院）','一院制','三院制','四院制'], ans: 0 },
+    { q: '江戸時代の参勤交代を定めた将軍は？', choices: ['徳川家光','徳川家康','徳川吉宗','徳川秀忠'], ans: 0 },
+    { q: '日本で最も長い川は？', choices: ['信濃川','利根川','石狩川','最上川'], ans: 0 },
+    { q: '沖縄が日本に返還された年は？', choices: ['1972年','1951年','1965年','1980年'], ans: 0 },
+    { q: '明治時代に行われた改革でないのは？', choices: ['参勤交代','廃藩置県','地租改正','徴兵令'], ans: 0 },
+    { q: '日本の首都は？', choices: ['東京','大阪','京都','名古屋'], ans: 0 },
+    { q: '国際連合の本部がある都市は？', choices: ['ニューヨーク','ジュネーブ','パリ','ロンドン'], ans: 0 },
+    { q: '「古事記」が書かれた時代は？', choices: ['奈良時代','平安時代','飛鳥時代','鎌倉時代'], ans: 0 },
+    { q: '日本で米作りが始まった時代は？', choices: ['弥生時代','縄文時代','古墳時代','飛鳥時代'], ans: 0 },
+    { q: '選挙権が与えられる年齢は？', choices: ['18歳','20歳','25歳','16歳'], ans: 0 },
+    { q: '関東地方の都道府県数は？', choices: ['1都6県','1都5県','2都6県','1都7県'], ans: 0 },
+    { q: '日本国憲法の三大原則に含まれないのは？', choices: ['自由主義','基本的人権の尊重','平和主義','国民主権'], ans: 0 },
+    { q: '豊臣秀吉が行った検地を何という？', choices: ['太閤検地','地租改正','班田収授','荘園整理'], ans: 0 },
+    { q: 'アジアで最初に近代オリンピックを開催した都市は？', choices: ['東京(1964年)','北京','ソウル','大阪'], ans: 0 },
+    { q: '日本が鎖国を終えた直接のきっかけは？', choices: ['ペリーの来航','明治維新','西南戦争','日清戦争'], ans: 0 }
+  ],
+  '英語': [
+    { q: '「りんご」を英語で言うと？', choices: ['apple','orange','banana','grape'], ans: 0 },
+    { q: '「月曜日」を英語で言うと？', choices: ['Monday','Sunday','Tuesday','Friday'], ans: 0 },
+    { q: '"I have two ___." 犬が2匹。空欄は？', choices: ['dogs','dog','a dog','the dog'], ans: 0 },
+    { q: '「12」を英語で言うと？', choices: ['twelve','eleven','thirteen','twenty'], ans: 0 },
+    { q: '「赤」を英語で言うと？', choices: ['red','blue','green','yellow'], ans: 0 },
+    { q: '"What time is it?" の答えとして正しいのは？', choices: ["It's three o'clock.",'I\'m fine.','Yes, it is.','My name is Ken.'], ans: 0 },
+    { q: '「図書館」を英語で言うと？', choices: ['library','hospital','school','station'], ans: 0 },
+    { q: '"She ___ soccer every day." 正しい動詞は？', choices: ['plays','play','playing','played'], ans: 0 },
+    { q: '「私の名前はサクラです」を英語で言うと？', choices: ['My name is Sakura.','I am Sakura name.','Name my is Sakura.','Sakura is my.'], ans: 0 },
+    { q: '「3月」を英語で言うと？', choices: ['March','May','June','January'], ans: 0 },
+    { q: '「猫」を英語で言うと？', choices: ['cat','dog','bird','fish'], ans: 0 },
+    { q: '"How are you?" の答えとして正しいのは？', choices: ["I'm fine, thank you.",'I\'m ten years old.','My name is Yuki.','It\'s sunny.'], ans: 0 },
+    { q: '「大きい」を英語で言うと？', choices: ['big','small','long','short'], ans: 0 },
+    { q: '「水曜日」を英語で言うと？', choices: ['Wednesday','Monday','Thursday','Tuesday'], ans: 0 },
+    { q: '「20」を英語で言うと？', choices: ['twenty','twelve','two','twelfth'], ans: 0 },
+    { q: '「病院」を英語で言うと？', choices: ['hospital','library','station','school'], ans: 0 },
+    { q: '"I ___ to school." 正しい動詞は？', choices: ['go','goes','going','went'], ans: 0 },
+    { q: '「緑」を英語で言うと？', choices: ['green','blue','red','yellow'], ans: 0 },
+    { q: '「兄・弟」を英語で言うと？', choices: ['brother','sister','father','mother'], ans: 0 },
+    { q: '"Do you like music?" の答えとして正しいのは？', choices: ['Yes, I do.','Yes, I am.','Yes, I have.','Yes, I can.'], ans: 0 }
+  ]
+};
+
+// ==============================
+// STATE
+// ==============================
+let currentSubject = null;
+let sessionQuestions = [];
+let currentIndex = 0;
+let score = 0;
+let answered = false;
+let usedImageIndices = [];
+let sessionAnswers = [];
+
+// ==============================
+// HELPERS
+// ==============================
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pickImages(count) {
+  const indices = shuffle([...Array(IMAGES.length).keys()]);
+  usedImageIndices = indices.slice(0, count);
+  return usedImageIndices.map(i => IMAGES[i]);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ==============================
+// QUIZ LOGIC
+// ==============================
+function startSubject(subject) {
+  currentSubject = subject;
+  const allQ = QUESTIONS[subject];
+  // Shuffle and pick 10, then shuffle choices within each
+  const picked = shuffle(allQ).slice(0, 10);
+  sessionQuestions = picked.map(q => {
+    // Shuffle choices, track correct answer
+    const indexed = q.choices.map((c, i) => ({ text: c, correct: i === q.ans }));
+    const shuffled = shuffle(indexed);
+    return { q: q.q, choices: shuffled, correctText: q.choices[q.ans] };
+  });
+  sessionImages = pickImages(10);
+  currentIndex = 0;
+  score = 0;
+  sessionAnswers = [];
+  showScreen('quiz-screen');
+  document.getElementById('quiz-subject-label').textContent = subject;
+  renderQuestion();
+}
+
+let sessionImages = [];
+
+function renderQuestion() {
+  const q = sessionQuestions[currentIndex];
+  answered = false;
+
+  // Progress
+  const prog = ((currentIndex) / 10) * 100;
+  document.getElementById('progress-bar').style.width = prog + '%';
+  document.getElementById('quiz-progress-label').textContent = `${currentIndex + 1} / 10`;
+  document.getElementById('q-num').textContent = `第${currentIndex + 1}問`;
+  document.getElementById('q-text').textContent = q.q;
+
+  // Background image
+  const bg = document.getElementById('q-card-bg');
+  const imgUrl = sessionImages[currentIndex] || IMAGES[0];
+  bg.style.backgroundImage = `url('${imgUrl}')`;
+
+  // Choices
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  q.choices.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c.text;
+    btn.onclick = () => selectAnswer(i, c.correct, q.correctText);
+    choicesEl.appendChild(btn);
+  });
+
+  // Reset feedback
+  const fb = document.getElementById('answer-feedback');
+  fb.style.display = 'none';
+  fb.className = 'answer-feedback';
+  fb.textContent = '';
+
+  const nextBtn = document.getElementById('next-btn');
+  nextBtn.style.display = 'none';
+}
+
+function selectAnswer(idx, isCorrect, correctText) {
+  if (answered) return;
+  answered = true;
+
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (sessionQuestions[currentIndex].choices[i].correct) {
+      btn.classList.add('correct');
+      btn.innerHTML = '<span class="choice-icon">✅</span>' + btn.textContent;
+    }
+  });
+
+  const fb = document.getElementById('answer-feedback');
+  if (isCorrect) {
+    score++;
+    btns[idx].classList.add('correct');
+    fb.className = 'answer-feedback correct';
+    fb.textContent = '正解！すばらしい！';
+  } else {
+    btns[idx].classList.add('wrong');
+    btns[idx].innerHTML = '<span class="choice-icon">❌</span>' + btns[idx].textContent.replace('❌','');
+    fb.className = 'answer-feedback wrong';
+    fb.textContent = `不正解。正解は「${correctText}」です。`;
+  }
+  fb.style.display = 'block';
+
+  sessionAnswers.push({
+    q: sessionQuestions[currentIndex].q,
+    correct: isCorrect,
+    correctText,
+    userChoice: sessionQuestions[currentIndex].choices[idx].text
+  });
+
+  const nextBtn = document.getElementById('next-btn');
+  nextBtn.style.display = 'block';
+  if (currentIndex === 9) {
+    nextBtn.textContent = '結果を見る！';
+  } else {
+    nextBtn.textContent = '次の問題へ →';
+  }
+}
+
+function nextQuestion() {
+  currentIndex++;
+  if (currentIndex >= 10) {
+    showResult();
+  } else {
+    renderQuestion();
+  }
+}
+
+function showResult() {
+  document.getElementById('progress-bar').style.width = '100%';
+  showScreen('result-screen');
+  document.getElementById('result-subject-name').textContent = currentSubject + ' — 結果';
+  document.getElementById('result-score').textContent = score;
+
+  // Pick result animal image
+  const rImg = IMAGES[Math.floor(Math.random() * IMAGES.length)];
+  document.getElementById('result-animal').src = rImg;
+
+  // Message
+  let msg = '';
+  if (score === 10) msg = '完璧！満点です！🎉';
+  else if (score >= 8) msg = 'すばらしい！よくできました！';
+  else if (score >= 6) msg = 'がんばりました！もう少しで満点！';
+  else if (score >= 4) msg = 'まずまずです。復習してみよう！';
+  else msg = 'もっと練習しよう！きっとできる！';
+  document.getElementById('result-message').textContent = msg;
+
+  // Detail
+  const detail = document.getElementById('result-detail');
+  detail.innerHTML = '';
+  sessionAnswers.forEach((a, i) => {
+    const div = document.createElement('div');
+    div.className = 'result-item ' + (a.correct ? 'r-correct' : 'r-wrong');
+    let html = `<span class="result-icon">${a.correct ? '✅' : '❌'}</span>
+      <div class="result-q">
+        <div class="result-q-text">Q${i+1}. ${a.q}</div>
+        <div class="result-q-ans">正解: ${a.correctText}</div>`;
+    if (!a.correct) {
+      html += `<div class="result-q-wrong-ans">あなたの答え: ${a.userChoice}</div>`;
+    }
+    html += '</div>';
+    div.innerHTML = html;
+    detail.appendChild(div);
+  });
+}
+
+function retrySubject() {
+  startSubject(currentSubject);
+}
+
+function goHome() {
+  showScreen('home-screen');
+}
+
+// ==============================
+// SERVICE WORKER (PWA via blob)
+// ==============================
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = 'shogaku6-v1';
+    self.addEventListener('install', e => {
+      self.skipWaiting();
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])));
+    });
+    self.addEventListener('activate', e => {
+      e.waitUntil(clients.claim());
+    });
+    self.addEventListener('fetch', e => {
+      e.respondWith(
+        caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('/')))
+      );
+    });
+  `;
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl, { scope: '/' })
+    .then(() => console.log('SW registered'))
+    .catch(e => console.warn('SW registration failed:', e));
+}
+</script>
+</body>
+</html>
