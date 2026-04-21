@@ -642,27 +642,10 @@ function goHome() {
 }
 
 // ==============================
-// SERVICE WORKER (PWA via blob)
+// SERVICE WORKER (PWA)
 // ==============================
 if ('serviceWorker' in navigator) {
-  const swCode = `
-    const CACHE = 'shogaku6-v1';
-    self.addEventListener('install', e => {
-      self.skipWaiting();
-      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])));
-    });
-    self.addEventListener('activate', e => {
-      e.waitUntil(clients.claim());
-    });
-    self.addEventListener('fetch', e => {
-      e.respondWith(
-        caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('/')))
-      );
-    });
-  `;
-  const blob = new Blob([swCode], { type: 'application/javascript' });
-  const swUrl = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swUrl, { scope: '/' })
+  navigator.serviceWorker.register('./sw.js', { scope: './' })
     .then(() => console.log('SW registered'))
     .catch(e => console.warn('SW registration failed:', e));
 }
