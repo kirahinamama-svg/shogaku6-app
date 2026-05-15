@@ -1,7 +1,7 @@
 {
-  "name": "小学6年 全教科チャレンジ",
-  "short_name": "6年チャレンジ",
-  "description": "小学6年生の全教科100問チャレンジアプリ",
+  "name": "中学1年 中間テスト対策",
+  "short_name": "中1中間テスト",
+  "description": "中学1年生の中間テスト対策アプリ",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f0fff4",
@@ -9,7 +9,7 @@
   "orientation": "portrait",
   "lang": "ja",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "hamster-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "hamster-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
